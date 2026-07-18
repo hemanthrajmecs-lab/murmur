@@ -1,0 +1,15 @@
+# Dependencies (users install with `npm install`)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local user config (never commit — may contain your API key)
+config.json
+.env

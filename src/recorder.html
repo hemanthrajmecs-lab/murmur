@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>recorder</title></head>
+<body>
+<script>
+  let mediaRecorder = null;
+  let stream = null;
+  let chunks = [];
+  let audioCtx = null, analyser = null, levelTimer = null, peak = 0, startTs = 0;
+
+  function startMeter() {
+    try {
+      audioCtx = new AudioContext();
+      const src = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      const buf = new Uint8Array(analyser.fftSize);
+      peak = 0;
+      levelTimer = setInterval(() => {
+        analyser.getByteTimeDomainData(buf);
+        let m = 0;
+        for (let i = 0; i < buf.length; i++) m = Math.max(m, Math.abs(buf[i] - 128));
+        if (m > peak) peak = m;
+      }, 40);
+    } catch (e) { window.flow.log('meter error: ' + e.message); }
+  }
+  function stopMeter() {
+    if (levelTimer) clearInterval(levelTimer);
+    levelTimer = null;
+    if (audioCtx) { try { audioCtx.close(); } catch {} audioCtx = null; }
+  }
+
+  function pickMime() {
+    const prefs = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+    for (const m of prefs) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return '';
+  }
+
+  // Keep one mic stream warm so hold-to-talk starts instantly (no clipped first word).
+  async function ensureStream() {
+    if (stream) {
+      const t = stream.getAudioTracks()[0];
+      if (t && t.readyState === 'live') return stream;
+    }
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const track = stream.getAudioTracks()[0];
+    window.flow.log('mic acquired: track="' + (track && track.label) + '" muted=' + (track && track.muted));
+    return stream;
+  }
+
+  window.flow.onStart(async () => {
+    try {
+      await ensureStream();
+      chunks = [];
+      const mimeType = pickMime();
+      startMeter();
+      startTs = Date.now();
+      mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        try {
+          const blob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
+          const buf = await blob.arrayBuffer();
+          window.flow.log('onstop: blob bytes=' + buf.byteLength + ' chunks=' + chunks.length +
+            ' durMs=' + (Date.now() - startTs) + ' PEAK=' + peak + '/128');
+          window.flow.sendAudio(buf);
+        } catch (err) {
+          window.flow.sendError('Could not read audio: ' + err.message);
+        } finally {
+          stopMeter(); // keep the stream warm for next time
+        }
+      };
+      mediaRecorder.start();
+      window.flow.log('recording started, state=' + mediaRecorder.state);
+    } catch (err) {
+      stopMeter();
+      const msg = err && err.name === 'NotAllowedError'
+        ? 'Microphone blocked — allow it in Windows privacy settings'
+        : 'Microphone error: ' + (err.message || err.name);
+      window.flow.sendError(msg);
+      if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    }
+  });
+
+  window.flow.onStop(() => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+    } else {
+      window.flow.sendError('No active recording to stop');
+    }
+  });
+</script>
+</body>
+</html>

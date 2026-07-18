@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Murmur — Settings</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 22px 24px 24px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f6f6f8; color: #1a1a1e;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #17171c; color: #eaeaf0; }
+    input, select { background: #24242c; color: #eaeaf0; border-color: #3a3a44; }
+    .card { background: #1e1e25; border-color: #2c2c35; }
+    .hint { color: #9a9aa6; }
+    a { color: #a5b4fc; }
+  }
+  h1 { font-size: 17px; margin: 0 0 2px; display:flex; align-items:center; gap:8px; }
+  .sub { font-size: 12.5px; color: #6b6b76; margin: 0 0 18px; }
+  .card { background: #fff; border: 1px solid #e6e6ec; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; margin: 0 0 6px; }
+  .row { margin-bottom: 14px; }
+  .row:last-child { margin-bottom: 0; }
+  input, select {
+    width: 100%; padding: 9px 11px; font-size: 13.5px;
+    border: 1px solid #d5d5dd; border-radius: 8px; outline: none;
+    background: #fff; color: inherit;
+  }
+  input:focus, select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.18); }
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; }
+  .hint { font-size: 11.5px; color: #86868f; margin-top: 6px; line-height: 1.45; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button {
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    border: none; border-radius: 8px; padding: 9px 14px; cursor: pointer;
+  }
+  .btn-primary { background: #6366f1; color: #fff; width: 100%; padding: 11px; font-size: 14px; }
+  .btn-primary:hover { background: #565bd8; }
+  .btn-ghost { background: #ececf2; color: #33333c; }
+  @media (prefers-color-scheme: dark) { .btn-ghost { background: #2c2c35; color: #d5d5dd; } }
+  .btn-ghost:hover { filter: brightness(0.96); }
+  .check { display:flex; align-items:center; gap:9px; }
+  .check input { width:auto; }
+  .check label { margin:0; font-weight:500; }
+  #status { font-size: 12.5px; margin-top: 10px; min-height: 16px; text-align:center; }
+  .ok { color: #10b981; } .err { color: #ef4444; }
+  code { background: rgba(120,120,140,.16); padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>🎙 Murmur</h1>
+  <p class="sub">Press your hotkey anywhere, speak, and it types for you.</p>
+
+  <div class="card">
+    <div class="row">
+      <label>Groq API key</label>
+      <div class="key-row">
+        <input id="apiKey" type="password" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+        <button class="btn-ghost" id="toggleKey" type="button">Show</button>
+        <button class="btn-ghost" id="testKey" type="button">Test</button>
+      </div>
+      <div class="hint">Free key from <a href="#" id="groqLink">console.groq.com/keys</a>. Stored only on this PC.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label>Hold-to-talk key</label>
+      <input id="hotkey" type="text" placeholder="Control+Shift+Space" spellcheck="false">
+      <div class="hint"><b>Hold</b> this while you speak, then <b>release</b> to insert.
+        Try a key like <code>F9</code> / <code>RightCtrl</code>, or a mouse button:
+        <code>Mouse5</code> (forward), <code>Mouse4</code> (back), <code>MiddleMouse</code>.
+        Combine with <code>+</code> (e.g. <code>Control+Shift+Space</code>).</div>
+    </div>
+    <div class="grid2">
+      <div class="row">
+        <label>Model</label>
+        <select id="model">
+          <option value="whisper-large-v3-turbo">Turbo (fast)</option>
+          <option value="whisper-large-v3">Large v3 (best)</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Language</label>
+        <select id="language">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="hi">Hindi</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+        </select>
+      </div>
+    </div>
+    <div class="row check">
+      <input id="cleanup" type="checkbox">
+      <label for="cleanup">Light cleanup (capitalisation, punctuation, trim fillers)</label>
+    </div>
+    <div class="row check">
+      <input id="aiCleanup" type="checkbox">
+      <label for="aiCleanup">AI cleanup via Groq (fix grammar, remove filler & false starts)</label>
+    </div>
+    <div class="row" id="aiModelRow">
+      <label>AI cleanup model</label>
+      <select id="aiModel">
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B — instant (recommended)</option>
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B — best quality</option>
+        <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+      </select>
+      <div class="hint">Uses your same Groq key. Adds ~0.3–1s. If it ever fails, it falls back to light cleanup automatically.</div>
+    </div>
+    <div class="row check">
+      <input id="autoPaste" type="checkbox">
+      <label for="autoPaste">Auto-paste into the focused app (otherwise copy to clipboard)</label>
+    </div>
+    <div class="row check">
+      <input id="startAtLogin" type="checkbox">
+      <label for="startAtLogin">Start Murmur at login</label>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="save">Save</button>
+  <div id="status"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let cfg = {};
+
+  async function load() {
+    cfg = await window.settings.get();
+    $('apiKey').value = cfg.groqApiKey || '';
+    $('hotkey').value = cfg.hotkey || 'Control+Shift+Space';
+    $('model').value = cfg.model || 'whisper-large-v3-turbo';
+    $('language').value = cfg.language || 'auto';
+    $('cleanup').checked = (cfg.cleanup || 'light') === 'light';
+    $('aiCleanup').checked = !!cfg.aiCleanup;
+    $('aiModel').value = cfg.aiModel || 'llama-3.1-8b-instant';
+    $('autoPaste').checked = cfg.autoPaste !== false;
+    $('startAtLogin').checked = !!cfg.startAtLogin;
+    updateAiRow();
+  }
+
+  function updateAiRow() {
+    $('aiModelRow').style.display = $('aiCleanup').checked ? '' : 'none';
+  }
+
+  function setStatus(msg, cls) {
+    const s = $('status'); s.textContent = msg; s.className = cls || '';
+    if (msg) setTimeout(() => { if (s.textContent === msg) { s.textContent = ''; s.className=''; } }, 4000);
+  }
+
+  $('toggleKey').onclick = () => {
+    const el = $('apiKey');
+    const show = el.type === 'password';
+    el.type = show ? 'text' : 'password';
+    $('toggleKey').textContent = show ? 'Hide' : 'Show';
+  };
+
+  $('testKey').onclick = async () => {
+    const key = $('apiKey').value.trim();
+    if (!key) return setStatus('Enter a key first', 'err');
+    setStatus('Testing…');
+    const r = await window.settings.testKey(key);
+    if (r.ok) setStatus('✓ Key works', 'ok');
+    else setStatus('✗ Key failed' + (r.status ? ' (' + r.status + ')' : ''), 'err');
+  };
+
+  $('groqLink').onclick = (e) => {
+    e.preventDefault();
+    window.settings.openExternal('https://console.groq.com/keys');
+  };
+
+  $('aiCleanup').onchange = updateAiRow;
+
+  $('save').onclick = async () => {
+    const next = {
+      groqApiKey: $('apiKey').value.trim(),
+      hotkey: $('hotkey').value.trim() || 'Control+Shift+Space',
+      model: $('model').value,
+      language: $('language').value,
+      cleanup: $('cleanup').checked ? 'light' : 'none',
+      aiCleanup: $('aiCleanup').checked,
+      aiModel: $('aiModel').value,
+      autoPaste: $('autoPaste').checked,
+      startAtLogin: $('startAtLogin').checked,
+    };
+    cfg = await window.settings.save(next);
+    setStatus('✓ Saved', 'ok');
+  };
+
+  load();
+</script>
+</body>
+</html>
